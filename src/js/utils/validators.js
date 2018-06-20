@@ -23,7 +23,7 @@ export function verifyAmount(sourceAmount,
   balance,
   sourceSymbol,
   sourceDecimal,
-  rate, destDecimal, maxCap) {
+  rate, destDecimal, maxCap, sourceMinAmount) {
   //verify number for source amount
   var testAmount = parseFloat(sourceAmount)
   if (isNaN(testAmount)) {
@@ -38,15 +38,25 @@ export function verifyAmount(sourceAmount,
 
 
   //verify min source amount
-  var rateBig = new BigNumber(rate)
-  var estimateValue = sourceAmountWei
-  if (sourceSymbol !== "ETH") {
-    estimateValue = rateBig.times(sourceAmountWei).div(Math.pow(10, sourceDecimal))
-  }
-  var epsilon = new BigNumber(constants.EPSILON)
-  if (estimateValue.isLessThan(epsilon)) {
+  if (sourceAmountWei.isLessThan(sourceMinAmount)){
     return "too small"
   }
+   var rateBig = new BigNumber(rate)
+   var estimateValue = sourceAmountWei
+   if (sourceSymbol !== "ETH") {
+      estimateValue = rateBig.times(sourceAmountWei).div(Math.pow(10, sourceDecimal))
+    }
+    // if (estimateValue.isLessThan(epsilon)) {
+    //   return "too small"
+    // }
+
+  // if (sourceSymbol !== "ETH") {
+  //   estimateValue = rateBig.times(sourceAmountWei).div(Math.pow(10, sourceDecimal))
+  // }
+  // var epsilon = new BigNumber(constants.EPSILON)
+  // if (estimateValue.isLessThan(epsilon)) {
+  //   return "too small"
+  // }
 
   //verify max cap
   //estimate value based on eth

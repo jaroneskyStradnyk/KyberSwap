@@ -212,25 +212,42 @@ const market = (state = initState, action) => {
                 return {...state}
             }
             var tokens = newState.tokens
-            rates.map(rate => {
-                if (rate.source !== "ETH") {
-                    if (tokens[rate.source]) {
-                        var sellPriceETH = converters.convertSellRate(rate.rate)
-                        tokens[rate.source].ETH.sellPrice = parseFloat(converters.roundingNumber(sellPriceETH))
-                        tokens[rate.source].USD.sellPrice = parseFloat(converters.roundingNumber(sellPriceETH * rateUSD))
-                    } else {
-                        return
-                    }
-                } else {
-                    if (tokens[rate.dest]) {
-                        var buyPriceETH = converters.convertBuyRate(rate.rate)
-                        tokens[rate.dest].ETH.buyPrice = parseFloat(converters.roundingNumber(buyPriceETH))
-                        tokens[rate.dest].USD.buyPrice = parseFloat(converters.roundingNumber(buyPriceETH * rateUSD))
-                    } else {
-                        return
-                    }
-                }
+            Object.keys(tokens).map(key => {
+                // tokens[key].expectedRateBuy = rates[key].expectedRateBuy
+                // tokens[key].slippageRateBuy = rates[key].slippageRateBuy
+                // tokens[key].expectedRateSell = rates[key].expectedRateSell
+                // tokens[key].slippageRateSell = rates[key].slippageRateSell
+                // tokens[key].minTokenAmount = rates[key].minTokenAmount
+
+                var sellPriceETH = converters.convertSellRate(rates[key].expectedRateSell)
+                var buyPriceETH = converters.convertBuyRate(rates[key].expectedRateBuy)
+                
+                tokens[key].ETH.sellPrice = parseFloat(converters.roundingNumber(sellPriceETH))
+                tokens[key].USD.sellPrice = parseFloat(converters.roundingNumber(sellPriceETH * rateUSD))
+
+                tokens[key].ETH.buyPrice = parseFloat(converters.roundingNumber(buyPriceETH))
+                tokens[key].USD.buyPrice = parseFloat(converters.roundingNumber(buyPriceETH * rateUSD))
             })
+
+            // rates.map(rate => {
+            //     if (rate.source !== "ETH") {
+            //         if (tokens[rate.source]) {
+            //             var sellPriceETH = converters.convertSellRate(rate.rate)
+            //             tokens[rate.source].ETH.sellPrice = parseFloat(converters.roundingNumber(sellPriceETH))
+            //             tokens[rate.source].USD.sellPrice = parseFloat(converters.roundingNumber(sellPriceETH * rateUSD))
+            //         } else {
+            //             return
+            //         }
+            //     } else {
+            //         if (tokens[rate.dest]) {
+            //             var buyPriceETH = converters.convertBuyRate(rate.rate)
+            //             tokens[rate.dest].ETH.buyPrice = parseFloat(converters.roundingNumber(buyPriceETH))
+            //             tokens[rate.dest].USD.buyPrice = parseFloat(converters.roundingNumber(buyPriceETH * rateUSD))
+            //         } else {
+            //             return
+            //         }
+            //     }
+            // })
             return  {...newState, tokens: {...tokens}}
         }
         

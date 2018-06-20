@@ -77,7 +77,7 @@ export function caculateEthBalance(token){
   if(token.symbol.toLowerCase() == 'eth'){
     return token.balance
   } else {
-    var rateBig = new BigNumber(token.rate)
+    var rateBig = new BigNumber(token.expectedRateSell)
     var balanceBig = new BigNumber(token.balance)
     //var weiParam = new BigNumber(10)
     var balanceToken = balanceBig.div(Math.pow(10, token.decimal))
@@ -467,4 +467,34 @@ export function caculatorRateToPercentage(number,total){
     return (new BigNumber(number)*new BigNumber(total))/100000000000000000000
   }
   return 0;
+}
+
+export function getMinValueEth(){
+ return numberToHex(constants.EPSILON)
+}
+
+export function getMinTokenAmount(rate){
+  var rateBig = new BigNumber(rate)
+  var epsilonBig = new BigNumber(constants.EPSILON)
+
+  var minAmount = rateBig.times(epsilonBig).div(Math.pow(10, 18)).times(1.2)
+
+  return minAmount.toFixed(0)
+}
+
+
+export function getAmountQueryRate(value, decimal, minAmount){
+  if (value === "") {
+    value = 0
+  }
+  var valueBig = new BigNumber(value.toString())
+  valueBig = valueBig.times(Math.pow(10, decimal))
+
+  var minAmountBig = new BigNumber(minAmount)
+
+  if (valueBig.comparedTo(minAmountBig) === 1){
+    return valueBig.toFixed()
+  }else{
+    return minAmount
+  }
 }

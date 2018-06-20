@@ -15,12 +15,11 @@ const AccountBalanceLayout = (props) => {
   }
 
   function getBalances() {
-    console.log(props.tokens)
     var balances = converts.shortEthBalance(props.tokens)
       .map(token => {
         var balance = converts.toT(token.balance, token.decimal)
 
-        var tokenEpsilon = converts.caculateTokenEpsilon(token.rate, token.decimal, token.symbol)
+        var tokenEpsilon = converts.caculateTokenEpsilon(token.expectedRateSell, token.decimal, token.symbol)
         var bigBalance = new BigNumber(token.balance)
 
         var searchWord = props.searchWord.toLowerCase()

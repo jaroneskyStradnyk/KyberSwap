@@ -59,7 +59,7 @@ export default class MinRate extends React.Component {
         </div>
         <div className = {!this.props.exchange.errors.rateError? "":"error"}>
           <span  className="sub_title">PERCENTAGE RATE</span>
-          <Slider value={percent} 
+          {/* <Slider value={percent} 
                   defaultValue={percent} 
                   min={0} max={100}
                   onChange={this.onSliderChange}                   
@@ -73,7 +73,7 @@ export default class MinRate extends React.Component {
                     width: 23,
                     height: 15,
                   }}
-          />
+          /> */}
           <div className="row small-12">
           <div className="column small-1"><label className="des-down">0%</label></div>
           <div className="column small-9 min-convention-rate"><span>{minConversionRate}</span></div>

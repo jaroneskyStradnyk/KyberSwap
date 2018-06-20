@@ -3,6 +3,7 @@ import constants from "../../constants"
 import * as ethUtil from 'ethereumjs-util'
 import BLOCKCHAIN_INFO from "../../../../../env"
 import abiDecoder from "abi-decoder"
+import * as converter from "../../../utils/converter"
 
 export default class BaseProvider {
 
@@ -66,7 +67,6 @@ export default class BaseProvider {
 
         return new Promise((resolve, reject) => {
             var data = this.wrapperContract.methods.getBalances(address, listToken).call().then(result => {
-                console.log(result)
                 var listTokenBalances = []
                 listSymbol.map((symbol, index) => {
                     listTokenBalances.push({
@@ -260,6 +260,7 @@ export default class BaseProvider {
     }
 
     getRate(source, dest, quantity) {
+        console.log(quantity)
         return new Promise((resolve, reject) => {
             this.networkContract.methods.getExpectedRate(source, dest, quantity).call()
                 .then((result) => {
@@ -323,6 +324,7 @@ export default class BaseProvider {
     }
 
     getAllRate(sources, dests, quantity) {
+
         var dataAbi = this.wrapperContract.methods.getExpectedRates(this.networkAddress, sources, dests, quantity).encodeABI()
 
         return new Promise((resolve, reject) => {
@@ -360,27 +362,118 @@ export default class BaseProvider {
 
         var arrayEthAddress = Array(arrayTokenAddress.length).fill(constants.ETH.address)
 
-        var arrayQty = Array(arrayTokenAddress.length * 2).fill("0x0")
+        //get minimum amount for eth
+        var epsilon = constants.EPSILON.toString()
+        var minValueETH = converter.numberToHex(epsilon)
+        var arrayBuy = Array(arrayTokenAddress.length).fill(minValueETH)
 
-        return this.getAllRate(arrayTokenAddress.concat(arrayEthAddress), arrayEthAddress.concat(arrayTokenAddress), arrayQty).then((result) => {
-            var returnData = []
-            Object.keys(tokensObj).map((tokenSymbol, i) => {
-                returnData.push({
-                    source: tokenSymbol,
-                    dest: "ETH",
-                    rate: result.expectedPrice[i],
-                    minRate: result.slippagePrice[i]
+
+        //get rate sell
+        return new Promise((resolve, reject) => {
+        this.getAllRate(arrayEthAddress, arrayTokenAddress, arrayBuy).then((resultBuy) => {
+
+                var returnData = {}
+                var arraySell = []
+                Object.keys(tokensObj).map((tokenSymbol, i) => {
+                    // returnData.push({
+                    //     source: tokenSymbol,
+                    //     dest: "ETH",
+                    //     rate: result.expectedPrice[i],
+                    //     minRate: result.slippagePrice[i]
+                    // })
+                    var minTokenAmount
+                    var minTokenAmountHex
+
+                    if (tokenSymbol === 'ETH') {
+                        minTokenAmount = epsilon
+                        minTokenAmountHex = minValueETH
+                    }else{
+                        minTokenAmount = converter.getMinTokenAmount(resultBuy.expectedPrice[i])
+                        minTokenAmountHex = converter.numberToHex(minTokenAmount)
+                    }
+
+                    arraySell.push(minTokenAmountHex)
+
+                    returnData[tokenSymbol] = {
+                        expectedRateBuy: resultBuy.expectedPrice[i],
+                        slippageRateBuy: resultBuy.slippagePrice[i],
+                        minTokenAmount: minTokenAmount
+                    }
+                    // returnData.push({
+                    //     source: "ETH",
+                    //     dest: tokenSymbol,
+                    //     rateBuy: resultBuy.expectedPrice[i],
+                    //     minRateBuy: resultBuy.slippagePrice[i],
+                    //     minTokenAmount: minTokenAmount
+                    // })
+                });
+
+                this.getAllRate(arrayTokenAddress, arrayEthAddress, arraySell).then((resultSell) => {
+                    Object.keys(tokensObj).map((tokenSymbol, i) => {
+                        // returnData.push({
+                        //     source: tokenSymbol,
+                        //     dest: "ETH",
+                        //     rate: result.expectedPrice[i],
+                        //     minRate: result.slippagePrice[i]
+                        // })
+                        returnData[tokenSymbol].expectedRateSell = resultSell.expectedPrice[i]
+                        returnData[tokenSymbol].slippageRateSell = resultSell.slippagePrice[i]
+    
+                        // returnData[tokenSymbol] = {
+                        //     rateBuy: resultBuy.expectedPrice[i],
+                        //     minRateBuy: resultBuy.slippagePrice[i],
+                        //     minTokenAmount: minTokenAmount
+                        // }
+                        // returnData.push({
+                        //     source: "ETH",
+                        //     dest: tokenSymbol,
+                        //     rateBuy: resultBuy.expectedPrice[i],
+                        //     minRateBuy: resultBuy.slippagePrice[i],
+                        //     minTokenAmount: minTokenAmount
+                        // })
+
+                    });
+                    resolve(returnData)
+                }).catch(err => {
+                    console.log(err)
+                    reject(err)
                 })
 
-                returnData.push({
-                    source: "ETH",
-                    dest: tokenSymbol,
-                    rate: result.expectedPrice[i + arrayTokenAddress.length],
-                    minRate: result.slippagePrice[i + arrayTokenAddress.length]
-                })
-            });
-            return returnData
+                //calculate min value
+                
+
+
+                
+        }).catch(err => {
+            console.log(err)
+            reject(err)
         })
+
+    })
+
+        
+        // var arrayQty = Array(arrayTokenAddress.length * 2).fill("0x0")
+
+        // return this.getAllRate(arrayTokenAddress.concat(arrayEthAddress), arrayEthAddress.concat(arrayTokenAddress), arrayQty).then((result) => {
+            
+        //     var returnData = []
+        //     Object.keys(tokensObj).map((tokenSymbol, i) => {
+        //         returnData.push({
+        //             source: tokenSymbol,
+        //             dest: "ETH",
+        //             rate: result.expectedPrice[i],
+        //             minRate: result.slippagePrice[i]
+        //         })
+
+        //         returnData.push({
+        //             source: "ETH",
+        //             dest: tokenSymbol,
+        //             rate: result.expectedPrice[i + arrayTokenAddress.length],
+        //             minRate: result.slippagePrice[i + arrayTokenAddress.length]
+        //         })
+        //     });
+        //     return returnData
+        // })
     }
 
     getMaxGasPrice() {
@@ -524,7 +617,6 @@ export default class BaseProvider {
             this.rpc.eth.getGasPrice()
                 .then(result => {
 
-                    console.log(result)
                     var gasPrice = parseInt(result, 10)
                     if (gasPrice > 20000000000) {
                         resolve({
@@ -595,6 +687,8 @@ export default class BaseProvider {
     }
 
     getRateAtSpecificBlock(source, dest, srcAmount, blockno) {
+        
+
         var data = this.networkContract.methods.getExpectedRate(source, dest, srcAmount).encodeABI()
 
         return new Promise((resolve, reject) => {

@@ -7,10 +7,11 @@ const initState = function () {
   let tokens = {}
   Object.keys(BLOCKCHAIN_INFO.tokens).forEach((key) => {
     tokens[key] = BLOCKCHAIN_INFO.tokens[key]
-    tokens[key].rate = 0
-    tokens[key].minRate = 0
-    tokens[key].rateEth = 0
-    tokens[key].minRateEth = 0
+    tokens[key].expectedRateBuy = 0
+    tokens[key].slippageRateBuy = 0
+    tokens[key].expectedRateSell = 0
+    tokens[key].slippageRateSell = 0
+    tokens[key].minTokenAmount = 0
     tokens[key].balance = 0
   })
   return {
@@ -34,19 +35,20 @@ const tokens = (state = initState, action) => {
 
           Object.keys(loadedTokens).forEach((id) => {
             var tokenMap = loadedTokens[id]
-            var token = new Rate(
-              tokenMap.name,
-              tokenMap.symbol,
-              tokenMap.icon,
-              tokenMap.address,
-              tokenMap.decimal,
-              tokenMap.rate ? tokenMap.rate : 0,
-              tokenMap.minRate ? tokenMap.minRate : 0,
-              0,
-              tokenMap.rateEth ? tokenMap.rateEth : 0,
-              tokenMap.minRateEth ? tokenMap.minRateEth : 0,
-              tokenMap.rateUSD ? tokenMap.rateUSD : 0
-            )
+            var token = {
+              name: tokenMap.name,
+              symbol: tokenMap.symbol,
+              icon: tokenMap.icon,
+              address:  tokenMap.address,
+              decimal: tokenMap.decimal,
+              expectedRateBuy: tokenMap.expectedRateBuy ? tokenMap.expectedRateBuy : 0,
+              slippageRateBuy: tokenMap.slippageRateBuy ? tokenMap.slippageRateBuy : 0,
+              balance: 0,
+              expectedRateSell: tokenMap.expectedRateSell ? tokenMap.expectedRateSell : 0,
+              slippageRateSell: tokenMap.slippageRateSell ? tokenMap.slippageRateSell : 0,
+              rateUSD: tokenMap.rateUSD ? tokenMap.rateUSD : 0,
+              minTokenAmount: tokenMap.minTokenAmount ? tokenMap.minTokenAmount : 0,
+            }
             tokens[id] = token
           })
           return Object.assign({}, state, {
@@ -57,48 +59,61 @@ const tokens = (state = initState, action) => {
           return state;
         }
       }
-      return state
+      return initState
     }
     case 'GLOBAL.ALL_RATE_UPDATED_FULFILLED': {
-      var tokens = { ...state.tokens }
+     
       var rates = action.payload.rates
       if (!rates){
         return state
       }
       //map token
-      var mapToken = {}
-      rates.map(rate => {
-        if (rate.source !== "ETH") {
-          if (!mapToken[rate.source]) {
-            mapToken[rate.source] = {}
-          }
-          mapToken[rate.source].rate = rate.rate
-          mapToken[rate.source].minRate = rate.minRate
-        } else {
-          if (!mapToken[rate.dest]) {
-            mapToken[rate.dest] = {}
-          }
-          mapToken[rate.dest].rateEth = rate.rate
-          mapToken[rate.dest].minRateEth = rate.minRate
-        }
-      })
 
-      //push data
-      var newTokens = {}
+      var tokens = { ...state.tokens}
+
       Object.keys(tokens).map(key => {
-        var token = tokens[key]
-        if (mapToken[key] && mapToken[key].rate) {
-          token.rate = mapToken[key].rate
-          token.minRate = mapToken[key].minRate
-        }
-        if (mapToken[key] && mapToken[key].rateEth) {
-          token.rateEth = mapToken[key].rateEth
-          token.minRateEth = mapToken[key].minRateEth
-        }
-        newTokens[key] = token
+        tokens[key].expectedRateBuy = rates[key].expectedRateBuy
+        tokens[key].slippageRateBuy = rates[key].slippageRateBuy
+        tokens[key].expectedRateSell = rates[key].expectedRateSell
+        tokens[key].slippageRateSell = rates[key].slippageRateSell
+        tokens[key].minTokenAmount = rates[key].minTokenAmount
       })
+      return Object.assign({}, state, { tokens: tokens })
 
-      return Object.assign({}, state, { tokens: newTokens })
+      // console.log(rates)
+      // var mapToken = {}
+      // rates.map(rate => {
+      //   if (rate.source !== "ETH") {
+      //     if (!mapToken[rate.source]) {
+      //       mapToken[rate.source] = {}
+      //     }
+      //     mapToken[rate.source].rate = rate.rate
+      //     mapToken[rate.source].minRate = rate.minRate
+      //   } else {
+      //     if (!mapToken[rate.dest]) {
+      //       mapToken[rate.dest] = {}
+      //     }
+      //     mapToken[rate.dest].rateEth = rate.rate
+      //     mapToken[rate.dest].minRateEth = rate.minRate
+      //   }
+      // })
+
+      // //push data
+      // var newTokens = {}
+      // Object.keys(tokens).map(key => {
+      //   var token = tokens[key]
+      //   if (mapToken[key] && mapToken[key].rate) {
+      //     token.rate = mapToken[key].rate
+      //     token.minRate = mapToken[key].minRate
+      //   }
+      //   if (mapToken[key] && mapToken[key].rateEth) {
+      //     token.rateEth = mapToken[key].rateEth
+      //     token.minRateEth = mapToken[key].minRateEth
+      //   }
+      //   newTokens[key] = token
+      // })
+
+      // return Object.assign({}, state, { tokens: newTokens })
     }
     case 'GLOBAL.UPDATE_RATE_USD_FULFILLED': {
       var tokens = { ...state.tokens }
@@ -147,7 +162,6 @@ const tokens = (state = initState, action) => {
       const {hash, symbol} = action.payload
       var tokens = { ...state.tokens }
       tokens[symbol].approveTx = hash
-      console.log(tokens)
       return Object.assign({}, state, { tokens: tokens }) 
     }
     case 'EXCHANGE.REMOVE_APPROVE_TX':{

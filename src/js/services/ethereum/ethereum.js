@@ -18,7 +18,7 @@ import * as marketActions from "../../actions/marketActions"
 import BLOCKCHAIN_INFO from "../../../../env"
 import { store } from "../../store"
 import { setConnection } from "../../actions/connectionActions"
-import { stringToHex } from "../../utils/converter"
+import * as converter from "../../utils/converter"
 
 import * as providers from "./nodeProviders"
 
@@ -300,19 +300,22 @@ export default class EthereumService extends React.Component {
     var tokens = state.tokens.tokens
     var sourceDecimal = 18
     var sourceTokenSymbol = state.exchange.sourceTokenSymbol
+    var minAmount = 0
     if (tokens[sourceTokenSymbol]) {
       sourceDecimal = tokens[sourceTokenSymbol].decimal
+      minAmount = tokens[sourceTokenSymbol].minTokenAmount
     }
 
-    var sourceAmountHex = stringToHex(sourceAmount, sourceDecimal)
+    var sourceAmount = converter.getAmountQueryRate(sourceAmount, sourceDecimal, minAmount)
+    var sourceAmountHex = converter.numberToHex(sourceAmount)
 
     var destTokenSymbol = state.exchange.destTokenSymbol
     var rateInit = 0
-    if (sourceTokenSymbol === 'ETH' && destTokenSymbol !== 'ETH') {
-      rateInit = tokens[destTokenSymbol].minRateEth
+    if (sourceTokenSymbol === 'ETH') {
+      rateInit = tokens[destTokenSymbol].expectedRateBuy
     }
-    if (sourceTokenSymbol !== 'ETH' && destTokenSymbol === 'ETH') {
-      rateInit = tokens[sourceTokenSymbol].minRate
+    if (sourceTokenSymbol !== 'ETH') {
+      rateInit = tokens[sourceTokenSymbol].expectedRateSell
     }
 
     store.dispatch(updateRateExchange(ethereum, source, dest, sourceAmountHex, isManual, rateInit))

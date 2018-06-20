@@ -2,7 +2,9 @@ import React from "react"
 import { connect } from "react-redux"
 import { push } from 'react-router-redux';
 
-import { gweiToWei, stringToHex, getDifferentAmount, toT, roundingNumber, caculateSourceAmount, caculateDestAmount, gweiToEth, toPrimitiveNumber, stringToBigNumber, toEther } from "../../utils/converter"
+//import { gweiToWei, stringToHex, getDifferentAmount, toT, roundingNumber, caculateSourceAmount, caculateDestAmount, gweiToEth, toPrimitiveNumber, stringToBigNumber, toEther } from "../../utils/converter"
+
+import * as converter from "../../utils/converter"
 
 import { PostExchangeWithKey, MinRate, AccountBalance } from "../Exchange"
 import { TransactionConfig } from "../../components/Transaction"
@@ -78,8 +80,11 @@ export default class ExchangeBody extends React.Component {
         this.props.dispatch(exchangeActions.throwErrorHandleAmount())
         return 
       }
-    }else{
-      var destValue = caculateDestAmount(sourceValue, this.props.exchange.offeredRate, 6)
+    }else{      
+      var destValue = converter.caculateDestAmount(sourceValue, this.props.exchange.offeredRate, 6)
+
+      console.log({sourceValue, rate: this.props.exchange.offeredRate, destValue})
+
       if(parseFloat(destValue) > 1000){
         this.props.dispatch(exchangeActions.throwErrorHandleAmount())
         return 
@@ -96,14 +101,28 @@ export default class ExchangeBody extends React.Component {
     var source = this.props.exchange.sourceToken
     var dest = this.props.exchange.destToken
     var destTokenSymbol = this.props.exchange.destTokenSymbol
-    var sourceAmountHex = stringToHex(sourceValue, sourceDecimal)
+
+    var minAmount =  tokens[sourceTokenSymbol].minTokenAmount    
+
+    var sourceAmount = converter.getAmountQueryRate(sourceValue, sourceDecimal, minAmount)
+    var sourceAmountHex = converter.numberToHex(sourceAmount)
+
     var rateInit = 0
-    if (sourceTokenSymbol === 'ETH' && destTokenSymbol !== 'ETH') {
-      rateInit = this.props.tokens[destTokenSymbol].minRateEth
+    if (sourceTokenSymbol === 'ETH') {
+      rateInit = tokens[destTokenSymbol].expectedRateBuy
     }
-    if (sourceTokenSymbol !== 'ETH' && destTokenSymbol === 'ETH') {
-      rateInit = this.props.tokens[sourceTokenSymbol].minRate
+    if (sourceTokenSymbol !== 'ETH') {
+      rateInit = tokens[sourceTokenSymbol].expectedRateSell
     }
+
+    // var sourceAmountHex = stringToHex(sourceValue, sourceDecimal)
+    // var rateInit = 0
+    // if (sourceTokenSymbol === 'ETH' && destTokenSymbol !== 'ETH') {
+    //   rateInit = this.props.tokens[destTokenSymbol].minRateEth
+    // }
+    // if (sourceTokenSymbol !== 'ETH' && destTokenSymbol === 'ETH') {
+    //   rateInit = this.props.tokens[sourceTokenSymbol].minRate
+    // }
 
     this.props.dispatch(exchangeActions.updateRateExchange(ethereum, source, dest, sourceAmountHex, true, rateInit))
   }
@@ -225,10 +244,10 @@ export default class ExchangeBody extends React.Component {
     var tokenSymbol = this.props.exchange.sourceTokenSymbol
     var token = this.props.tokens[tokenSymbol]
     if (token) {
-      var balanceBig = stringToBigNumber(token.balance)
+      var balanceBig = converter.stringToBigNumber(token.balance)
       if (tokenSymbol === "ETH") {
         var gasLimit = this.props.exchange.max_gas
-        var gasPrice = stringToBigNumber(gweiToWei(this.props.exchange.gasPrice))
+        var gasPrice = converter.stringToBigNumber(converter.gweiToWei(this.props.exchange.gasPrice))
         var totalGas = gasPrice.multipliedBy(gasLimit)
 
         if (!balanceBig.isGreaterThanOrEqualTo(totalGas)) {
@@ -284,11 +303,11 @@ export default class ExchangeBody extends React.Component {
     //console.log(this.props.exchange.balanceData)
     var balanceInfo = {
       //sourceTokenSymbol: this.props.exchange.sourceTokenSymbol,
-      sourceAmount: toT(this.props.exchange.balanceData.sourceAmount, this.props.exchange.balanceData.sourceDecimal),
+      sourceAmount: converter.toT(this.props.exchange.balanceData.sourceAmount, this.props.exchange.balanceData.sourceDecimal),
       sourceSymbol: this.props.exchange.balanceData.sourceSymbol,
       sourceTokenName: this.props.exchange.balanceData.sourceName,
       //destTokenSymbol: this.props.exchange.destTokenSymbol,
-      destAmount: toT(this.props.exchange.balanceData.destAmount, this.props.exchange.balanceData.destDecimal),
+      destAmount: converter.toT(this.props.exchange.balanceData.destAmount, this.props.exchange.balanceData.destDecimal),
       destTokenName: this.props.exchange.balanceData.destName,
       destSymbol: this.props.exchange.balanceData.destSymbol,
     }
@@ -382,8 +401,8 @@ export default class ExchangeBody extends React.Component {
     var token = this.props.tokens[this.props.exchange.sourceTokenSymbol]
     if (token) {
       addressBalance = {
-        value: toT(token.balance, token.decimal),
-        roundingValue: roundingNumber(toT(token.balance, token.decimal))
+        value: converter.toT(token.balance, token.decimal),
+        roundingValue: converter.roundingNumber(converter.toT(token.balance, token.decimal))
       }
     }
     return (
@@ -401,7 +420,7 @@ export default class ExchangeBody extends React.Component {
         setAmount={this.setAmount}
         translate={this.props.translate}
         swapToken={this.swapToken}
-        maxCap={toEther(this.props.exchange.maxCap)}
+        maxCap={converter.toEther(this.props.exchange.maxCap)}
         errorNotPossessKgt={this.props.exchange.errorNotPossessKgt}      
 
         balanceList = {<AccountBalance />}  

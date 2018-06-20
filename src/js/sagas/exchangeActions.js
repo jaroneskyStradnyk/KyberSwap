@@ -791,7 +791,6 @@ function* fetchGas() {
 }
 
 function* estimateGas() {
-
   var gasRequest = yield call(common.handleRequest, getGasUsed)
   if (gasRequest.status === "success") {
     const { gas, gas_approve } = gasRequest.data
@@ -892,10 +891,32 @@ function* fetchGasApproveSnapshot() {
 function* getMaxGasExchange(){
   var state = store.getState()
   const exchange = state.exchange
-  if (exchange.sourceTokenSymbol !== 'DGX' && exchange.destTokenSymbol !== 'DGX') {
-    return exchange.max_gas
-  }else{
-    return 650000
+
+  if (exchange.sourceTokenSymbol === 'DGX'){
+    if (exchange.destTokenSymbol === 'ETH'){
+      return 650000
+    }else{
+      return (650000 + exchange.max_gas)
+    }
+  }
+  if (exchange.sourceTokenSymbol === 'ETH'){
+    if (exchange.destTokenSymbol === 'DGX'){
+      return 650000
+    }else{
+      return exchange.max_gas
+    }
+  }
+
+  if (exchange.sourceTokenSymbol !== 'ETH'){
+    if (exchange.destTokenSymbol === 'DGX'){
+      return 650000 + exchange.max_gas
+    }
+    if (exchange.destTokenSymbol === 'ETH'){
+      return 650000 + exchange.max_gas
+    }
+    else{
+      return exchange.max_gas * 2
+    }
   }
 }
 
@@ -1226,6 +1247,7 @@ function* verifyExchange() {
     sourceBalance = tokens[sourceTokenSymbol].balance
     sourceDecimal = tokens[sourceTokenSymbol].decimal
     sourceName = tokens[sourceTokenSymbol].name
+    sourceMinAmount = tokens[sourceTokenSymbol].minTokenAmount
   }
 
   var destTokenSymbol = exchange.destTokenSymbol
@@ -1246,7 +1268,8 @@ function* verifyExchange() {
     sourceDecimal,
     offeredRate,
     destDecimal,
-    exchange.maxCap)
+    exchange.maxCap,
+    sourceMinAmount)
 
   var sourceAmountErrorKey
   var isNotNumber = false
