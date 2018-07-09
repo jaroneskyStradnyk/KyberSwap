@@ -101,6 +101,7 @@ var scriptConfig = function (env) {
     devServer: {
       compress: true,
       disableHostCheck: true,
+      contentBase : path.join(__dirname, "src"),
     }
   }
 };

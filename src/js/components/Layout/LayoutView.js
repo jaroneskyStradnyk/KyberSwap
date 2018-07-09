@@ -14,9 +14,10 @@ const LayoutView = (props) => {
         <Route component={props.Header} />
         <section id="content">
           <Switch>
-            <Route exact path={constansts.BASE_HOST} component={props.ImportAccount} />
+            <Route exact path={"/"} component={props.ImportAccount} />
             <Route exact path={constansts.BASE_HOST + "/swap"} component={props.Exchange} />
-            <Route exact path={constansts.BASE_HOST + "/transfer"} component={props.Transfer} />            
+            <Route exact path={constansts.BASE_HOST + "/transfer"} component={props.Transfer} />  
+            <Redirect from="*" to="/" />          
           </Switch>
           {/* <div id="rate-bar" class="mb-8">
             {props.rate}
