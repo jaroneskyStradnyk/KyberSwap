@@ -153,7 +153,7 @@ const initState = function () {
     count: { storageKey: constants.STORAGE_KEY },
     chart: {
       isLoading: false,
-      points: []
+      points: {}
     }
   }
 }()
@@ -411,8 +411,6 @@ const market = (state = initState, action) => {
       var {last7D} = action.payload
       var tokens = JSON.parse(JSON.stringify(newState.tokens))
       Object.keys(last7D).map(key=>{
-        console.log("key_error")
-        console.log(key)
         if (!tokens[key]) return
         var last_7d = last7D[key]
         if (last_7d && last_7d.length > 0) {
